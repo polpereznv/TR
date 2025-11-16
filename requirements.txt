@@ -1,0 +1,13 @@
+python==3.12.3
+CMake==4.0.3
+OpenCV-python==4.11.0.86
+OpenCV-contrib-python-4.12.0.88
+NumPy==2.2.6
+TensorFlow==2.19.0
+Keras==3.11.1
+Pandas==2.3.2
+Pillow==11.3.0
+Matplotlib==3.10.7
+seaborn
+scikit-learn
+
