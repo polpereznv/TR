@@ -3,7 +3,7 @@ import numpy as np
 from tensorflow import keras
 from functions import facial_recognition_and_landmarks_locating
 
-model = keras.models.load_model("emotion_recognition_cnn.keras")
+model = keras.models.load_model("final_emotion_recognition_cnn.keras")
 
 emotion_dict = {
     0: "Angry",
@@ -16,7 +16,7 @@ emotion_dict = {
 }
 
 # Cara provisional per provar si la CNN llegeix 
-image_path = "/home/polperez/Desktop/cara.jpeg"
+image_path = "/home/polperez/Desktop/TR/cara.jpeg"
 
 img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 

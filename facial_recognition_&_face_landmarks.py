@@ -10,7 +10,7 @@ face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fro
 
 # Load the function which locates the 68 landmarks
 facemark = cv2.face.createFacemarkLBF()
-facemark.loadModel("/home/polperez/Desktop/lbfmodel.yaml")
+facemark.loadModel("/home/polperez/Desktop/TR/lbfmodel.yaml")
 # Load image to detect
 image = cv2.imread(image_name)
 

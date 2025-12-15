@@ -12,8 +12,10 @@ from functions import select_image
 from functions import crop_face
 import matplotlib.pyplot as plt
 import time
-from functions import crop_face_from_webcam
 import pickle
+from sklearn.metrics import roc_auc_score, RocCurveDisplay
+from sklearn.preprocessing import label_binarize
+
 
 whattodo = input("Train (T) or Test (R)  ")
 
@@ -55,7 +57,7 @@ if whattodo == "T":
         #print(type(name_labels))
 
 
-    # Here it goes the CNN
+    # Here goes the CNN
 
     # Convert list of pixels, landmarks and emotion labels to numpy.arrays
     training_images = np.array(pixels_byw, dtype="float32")
@@ -80,11 +82,6 @@ if whattodo == "T":
         print(f"{emotion} ({label}) occurred {count} times")
 
 
-    #Make sure it worked
-    #print(type(training_images))
-    #print(type(training_landmarks))
-    #print(type(training_labels))
-
     # Normalization
     
     training_images = training_images.reshape(-1 , 48, 48, 1) / 255.0
@@ -95,12 +92,8 @@ if whattodo == "T":
     training_landmarks[:, 0::2] /= 48.0 # x
     training_landmarks[:, 1::2] /= 48.0 # y
 
-    #Make sure it worked
-    #print(training_landmarks)
-
-    #num_classes = len(np.unique(training_labels)) #Això ho faré servir despres en entrenar tota la base de dades, ja que hi ha alguna emoció que no apareix en les primeres cares que agafo de mostra
+    
     num_classes = 7
-    #print(num_classes)
 
     # CNN
     
@@ -146,6 +139,7 @@ if whattodo == "T":
         pickle.dump(history.history, f)
     print("Training history saved to final_model_history.pkl")
 
+    # Timers
     end_epochs_time = time.time()
     end_total_time = time.time()
     total_training_time = end_total_time - start_total_time
@@ -156,6 +150,7 @@ if whattodo == "T":
     print(f"\nmodel.fit() time: {total_epochs_time:.3f} seconds")
     print(f"\nAverage time per epoch: {time_per_epoch:.3f} seconds")
 
+    #Save model
     model.save("final_emotion_recognition_cnn.keras")
     print("model saved")
 
@@ -166,27 +161,27 @@ if whattodo == "T":
     import pandas as pd
     from sklearn.metrics import confusion_matrix, classification_report
 
-    # Step 1. Make predictions
+    #Make predictions
     predictions = model.predict([training_images, training_landmarks])
     predicted_labels = np.argmax(predictions, axis=1)
 
-    # Step 2. Build confusion matrix
+    #Build confusion matrix
     cm = confusion_matrix(training_labels, predicted_labels)
 
-    # Step 3. Define your emotion labels
+    #Define emotion labels
     emotion_labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
 
-    # Step 4. Ensure confusion matrix has full 7x7 shape
+    #Ensure confusion matrix has full 7x7 shape
     num_classes = 7
     if cm.shape != (num_classes, num_classes):
         fixed_cm = np.zeros((num_classes, num_classes), dtype=int)
         fixed_cm[:cm.shape[0], :cm.shape[1]] = cm
         cm = fixed_cm
 
-    # Step 5. Convert to DataFrame for plotting
+    #Convert to DataFrame for plotting
     df_cm = pd.DataFrame(cm, index=emotion_labels, columns=emotion_labels)
 
-    # Step 6. Plot the heatmap
+    #Plot the heatmap
     plt.figure(figsize=(8, 6))
     sn.heatmap(df_cm, annot=True, fmt='d', cmap='Blues')
     plt.title("Confusion Matrix of CNN Emotion Classifier")
@@ -194,9 +189,9 @@ if whattodo == "T":
     plt.ylabel("True Emotion")
     plt.show()
 
-    # Step 7. Print the classification report
+    #Print the classification report
     print("\nClassification Report:")
-    # Step 7 (fixed): Print classification report safely
+    #Print classification report safely
     unique_labels = np.unique(training_labels)
     used_emotion_labels = [emotion_labels[i] for i in unique_labels]
 
@@ -207,19 +202,17 @@ if whattodo == "T":
         labels=unique_labels,
         target_names=used_emotion_labels
     ))
-    from sklearn.metrics import roc_auc_score, RocCurveDisplay
-    from sklearn.preprocessing import label_binarize
 
-    # Binarize the labels for multi-class ROC
+    #AUC-ROC 
     y_true_bin = label_binarize(training_labels, classes=np.arange(num_classes))
-    y_pred_bin = predictions  # model.predict output = probability for each class
+    y_pred_bin = predictions
 
-    # Compute the mean AUC-ROC score (macro average)
+    # Compute the mean AUC-ROC score
     auc_score = roc_auc_score(y_true_bin, y_pred_bin, average='macro', multi_class='ovr')
     print(f"\n Mean AUC-ROC score (macro-avg): {auc_score:.4f}")
 
-    # OPTIONAL: Plot ROC curve for one example class (e.g., 'Happy')
-    class_to_plot = 3  # change index if you want another class
+    # Plot ROC curve for one example class (Happy in my case)
+    class_to_plot = 3
     RocCurveDisplay.from_predictions(y_true_bin[:, class_to_plot], y_pred_bin[:, class_to_plot])
     plt.title(f"ROC Curve – {emotion_labels[class_to_plot]} (Class {class_to_plot})")
     plt.show()
@@ -247,9 +240,11 @@ if whattodo == "T":
 
 elif whattodo == "R":
     
-    model = keras.models.load_model("/home/polperez/Desktop/final_emotion_recognition_cnn.keras")
+    model = keras.models.load_model("/home/polperez/Desktop/TR/final_emotion_recognition_cnn.keras")
     model.compile()
+
     camera_or_saved = input("Foto from files (F) or take a picture (P)")
+    
     if camera_or_saved == "F":
         path = select_image()
         cropped_face = crop_face(path)
@@ -278,9 +273,9 @@ elif whattodo == "R":
             landmarks_input[:, 0::2] /= 48.0
             landmarks_input[:, 1::2] /= 48.0
 
-            start_pred = time.time()  #  Start measuring prediction time
+            start_pred = time.time() 
             prediction = model.predict([img_input, landmarks_input])
-            end_pred = time.time()  #  End measurement
+            end_pred = time.time()  
 
             prediction_time = end_pred - start_pred
 
@@ -297,11 +292,11 @@ elif whattodo == "R":
 
     elif camera_or_saved == "P":
         # Load model
-        model = keras.models.load_model("/home/polperez/Desktop/final_emotion_recognition_cnn.keras")
+        model = keras.models.load_model("/home/polperez/Desktop/TR/final_emotion_recognition_cnn.keras")
         model.compile()
 
         # Open webcam 
-        cap = cv2.VideoCapture(0)  # 0 = default webcam
+        cap = cv2.VideoCapture(0)  
         if not cap.isOpened():
             print("Error: Cannot access camera.")
             sys.exit()
@@ -314,9 +309,8 @@ elif whattodo == "R":
                 print("Failed to grab frame.")
                 break
 
-            cv2.imshow("Camera - Press SPACE to capture", frame)
+            cv2.imshow("Camera - Press SPACE to capture or ESC to exit", frame)
             key = cv2.waitKey(1)
-
             # ESC = cancel
             if key % 256 == 27:
                 print("Capture cancelled.")
@@ -327,37 +321,35 @@ elif whattodo == "R":
             # SPACE = take picture
             elif key % 256 == 32:
                 img = frame.copy()
-                print("Photo captured!")
+                save_path = "/home/polperez/Desktop/TR/Captured_Images/captured_image.jpeg"
+                cv2.imwrite(save_path, img)
+                print("Image saved correctly!")
                 break
 
-        # --- Close camera ---
+        #Close camera
         cap.release()
         cv2.destroyAllWindows()
+        #import pdb;pdb.set_trace()
 
-        # --- Convert to grayscale ---
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        captured_image_path = "/home/polperez/Desktop/TR/Captured_Images/captured_image.jpeg"
 
-        # --- Detect and crop face ---
-        cropped_face = crop_face_from_webcam(gray)
+        #Crop face
+        cropped_face = crop_face(captured_image_path)
         if cropped_face is None:
             print("No face detected.")
             sys.exit()
 
         else:
-            # --- Resize face to 48x48 for CNN input ---
+            #Resize face to 48x48 for CNN compatibility
             resized_cropped_face = cv2.resize(cropped_face, (48, 48))
-            cv2.imshow("Detected Face", resized_cropped_face)
+            cv2.imshow("Resized cropped Face", resized_cropped_face)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
+            #import pdb;pdb.set_trace()
+            #Get landmarks
+            landmarks = facial_recognition_and_landmarks_locating(resized_cropped_face, findRectangle=False, PrintFoto=True)
 
-        # --- Get landmarks ---
-            landmarks = facial_recognition_and_landmarks_locating(
-                resized_cropped_face,
-                findRectangle=False,
-                PrintFoto=True
-            )
-
-        # --- Emotion labels dictionary ---
+        #Emotion labels dictionary
         emotion_dict = {
             0: "Angry",
             1: "Disgust",
@@ -368,9 +360,7 @@ elif whattodo == "R":
             6: "Neutral"
         }
 
-        # --- If landmarks found, predict emotion ---
         if landmarks is not None:
-            # Prepare image input
             img_input = resized_cropped_face.astype("float32").reshape(1, 48, 48, 1) / 255.0
 
             # Prepare landmark input
@@ -378,14 +368,13 @@ elif whattodo == "R":
             landmarks_input[:, 0::2] /= 48.0  # normalize x
             landmarks_input[:, 1::2] /= 48.0  # normalize y
 
-            # --- Measure prediction time ---
             start_pred = time.time()
             prediction = model.predict([img_input, landmarks_input])
             end_pred = time.time()
 
             prediction_time = end_pred - start_pred
 
-            # --- Process results ---
+            #Results
             predicted_class = np.argmax(prediction)
             confidence = np.max(prediction) * 100
 
